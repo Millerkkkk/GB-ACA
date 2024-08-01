@@ -165,6 +165,44 @@ class GenerateGBs:
                 break
         return self.gbs_list
 
+    def assign_single_point_gbs(self):
+        gbs_center, gbs_radius = [], []
+        for gb in self.gbs_list:
+            center, radius = self._gb_center_radius(gb)
+            gbs_center.append(center)
+            gbs_radius.append(radius)
+        gbs_center = np.array(gbs_center)
+
+        new_merged_gbs = {}
+        single_point_gbs = []
+
+        # Separate single point GBs and multi-point GBs
+        for gb in self.gbs_list:
+            if len(gb) == 1:
+                single_point_gbs.append(gb[0])
+            else:
+                label = len(new_merged_gbs)
+                new_merged_gbs[label] = gb
+
+        # Merge single point GBs into nearest multi-point GBs
+        for sp in single_point_gbs:
+            min_distance = float('inf')
+            closest_gb_label = None
+            sp_center = self.data.loc[sp, ['x', 'y']].values
+
+            for label, gbs in new_merged_gbs.items():
+                gb_center = self.data.loc[gbs, ['x', 'y']].mean().values
+                distance = np.linalg.norm(sp_center - gb_center)
+                if distance < min_distance:
+                    min_distance = distance
+                    closest_gb_label = label
+
+            if closest_gb_label is not None:
+                new_merged_gbs[closest_gb_label].append(sp)
+
+        self.gbs_list = list(new_merged_gbs.values())
+        return self.gbs_list
+
     def _gb_center_radius(self, gb):
         x_center = self.data.loc[gb, 'x'].mean()
         y_center = self.data.loc[gb, 'y'].mean()
@@ -183,6 +221,7 @@ class GenerateGBs:
         unvisited = [i for i in range(gbs_sum)]
         cluster = [-1 for _ in range(gbs_sum)]
         k = -1
+
         while len(unvisited) > 0:
             p = unvisited[0]
             unvisited.remove(p)
@@ -208,17 +247,36 @@ class GenerateGBs:
                             neighbors.append(t)
                 if cluster[pi] == -1:
                     cluster[pi] = k
+
         merged_gbs = {}
         for idx, label in enumerate(cluster):
             if label not in merged_gbs:
                 merged_gbs[label] = self.gbs_list[idx]
             else:
                 merged_gbs[label].extend(self.gbs_list[idx])
-        self.gbs_list = list(merged_gbs.values())
+
+        # Check for inclusion and merge small GBs into larger ones
+        new_merged_gbs = {}
+        for label, gbs in merged_gbs.items():
+            center, radius = self._gb_center_radius(gbs)
+            is_included = False
+            for new_label, new_gbs in new_merged_gbs.items():
+                new_center, new_radius = self._gb_center_radius(new_gbs)
+                if np.linalg.norm(np.array(center) - np.array(new_center)) + radius <= new_radius:
+                    new_merged_gbs[new_label].extend(gbs)
+                    is_included = True
+                    break
+            if not is_included:
+                new_merged_gbs[label] = gbs
+
+        self.gbs_list = list(new_merged_gbs.values())
         return self.gbs_list
 
-    def run(self, merge=1):
+    def run(self, merge_single_gb=1, merge=1):
         self.generate_gbs()
+        if merge_single_gb == 1:
+            self.assign_single_point_gbs()
+
         if merge == 1:
             self.merge_gbs()
 
@@ -336,7 +394,7 @@ class ACA_GB:
     fit = run
 
 
-def generate_gbs(dataframe, clusters_list, k):
+def generate_gbs(dataframe, clusters_list, k, merge_single_gb=1, merge=1):
     gbs_list = {i: [] for i in range(len(clusters_list))}
     gbs_center = {i: [] for i in range(len(clusters_list))}
     for i, cluster in clusters_list.items():
@@ -344,7 +402,7 @@ def generate_gbs(dataframe, clusters_list, k):
         cluster_data = dataframe.loc[list(cluster)]
 
         gbs_generator = GenerateGBs(cluster_data, k)
-        gbs, centers, gbs_radius = gbs_generator.run(1)
+        gbs, centers, gbs_radius = gbs_generator.run(merge_single_gb, merge)
         gbs_list[i] = gbs
         gbs_center[i] = centers
     return gbs_list, gbs_center
@@ -433,6 +491,7 @@ def total_cost(df, route, travel_time, charging_time, service_time,
     else:
         dispatch_cost = 0
     travel_cost = c2 * 60 * travel_time
+    # print('travel_time111', travel_time)
     service_cost = c3 * 60 * service_time
     charging_cost = c4 * 60 * charging_time
     cost = dispatch_cost + travel_cost + service_cost + charging_cost
@@ -483,6 +542,7 @@ def routing_time(df, dist_matrix, route, Q, load, departure_time, Q1, load1, dep
         dis = dist_matrix[route[i-1], route[i]]
         energy, t_ijk, speed = calculate_one_node_energy_time(dis, departure_time, load)
         total_travel_time += t_ijk
+        # print('travel_time', i, route[i], t_ijk, total_travel_time)
 
         service_time_minutes = df.loc[route[i]]['ServiceTime']
         service_time = service_time_minutes / 60
@@ -634,7 +694,7 @@ class ACA_object:
         insert_cs_in_start = False
         self.max_iter = max_iter or self.max_iter
         for _ in range(self.max_iter):  # 对每次迭代
-
+            # print('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@')
             for j in range(self.ants_sum):  # 对每个蚂蚁
                 if para_depot == 1:
                     self.ants_route[j, 0] = np.random.randint(0, self.nodes_sum)  # 随机选择起点
@@ -716,6 +776,7 @@ class ACA_object:
 
             # 记录ants_phero历史最好情况,更新信息素
             index_elite_ant_phero = np.array(ants_cost_phero).argmin()
+            # print(index_elite_ant_phero)
             elite_ant_phero, elite_ant_cost_phero = self.ants_route[index_elite_ant_phero].copy(), ants_cost_phero[index_elite_ant_phero].copy()
             self.phero_elite_ant_cost_history.append(ants_cost_phero[index_elite_ant_phero])
             # break
@@ -785,7 +846,7 @@ def gb_routing(df, gbs_list, total_dist_matrix, gbs_center_idx, size_ants, max_i
             gb = final_route[-1:] + current_gb
             next_gb_center = gbs_center_idx[idx + 1]
 
-
+        # print('************************')
         aca_object = ACA_object(gb, total_dist_matrix, size_ants, max_iter)
 
 
@@ -848,14 +909,18 @@ if __name__ == "__main__":
 
     # # r101
     # df = pd.read_csv(
-    #     r'C:\Users\12149\OneDrive - Universitatea Babeş-Bolyai\Desktop\EVRP_Datasets\Txt\evrptw_instances_LijunFan\table 1\r101_21.txt',
+    #     r'C:\Users\12149\OneDrive - Universitatea Babeş-Bolyai\Desktop\EVRP_Datasets\Txt\evrptw_instances_LijunFan\fig 3\r102_21.txt',
     #     sep=r'\s+')
-    # clusters = {0: {24, 25, 33, 42, 43, 44, 45, 46, 47, 48, 49, 50, 60, 61, 71, 73, 74, 75, 76, 77, 79, 88, 89, 90, 93, 94, 95, 96, 97, 98, 100, 101, 110}, 1: {23, 26, 27, 29, 34, 35, 36, 37, 38, 39, 58, 59, 62, 63, 64, 65, 66, 67, 78, 80, 81, 82, 104, 105, 106, 107, 108, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121}, 2: {22, 28, 30, 31, 32, 40, 41, 51, 52, 53, 54, 55, 56, 57, 68, 69, 70, 72, 83, 84, 85, 86, 87, 91, 92, 99, 102, 103, 109, 111}}
+    # clusters = {
+    #     0: {22, 24, 30, 31, 32, 40, 41, 48, 51, 52, 53, 54, 55, 56, 70, 71, 72, 83, 84, 85, 86, 87, 90, 91, 92, 97, 98, 99, 100, 102, 109, 111},
+    #     1: {26, 27, 28, 29, 34, 35, 37, 38, 39, 57, 58, 59, 63, 64, 65, 66, 67, 68, 69, 73, 80, 81, 82, 103, 104, 105, 106, 107, 108, 110, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121},
+    #     2: {23, 25, 33, 36, 42, 43, 44, 45, 46, 47, 49, 50, 60, 61, 62, 74, 75, 76, 77, 78, 79, 88, 89, 93, 94, 95, 96, 101}}
 
     # RC101
     df = pd.read_csv(
         r"C:\Users\12149\OneDrive - Universitatea Babeş-Bolyai\Desktop\EVRP_Datasets\Txt\evrptw_instances_LijunFan\table 1\rc101_21.txt",
         sep=r'\s+')
+    # 文章中的clusters
     clusters = {
         0: {22, 23, 24, 25, 26, 27, 28, 29, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 75, 76, 82, 89, 91, 93, 102,
             117, 121},
@@ -863,7 +928,23 @@ if __name__ == "__main__":
             108, 109, 111, 118, 119, 120},
         2: {39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 69, 70, 71, 72, 77, 83, 84, 85, 87, 88,
             92, 97, 101, 104, 105, 106, 110, 112, 113, 114, 115, 116}}
-
+    #
+    # # clusters = {0: {22, 23, 24, 25, 26, 27, 28, 29, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 75, 76, 82, 89, 91, 92, 93, 101, 102, 114, 117, 121}, 1: {39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 69, 70, 71, 72, 77, 83, 84, 85, 87, 88, 97, 104, 105, 106, 110, 112, 113, 115, 116}, 2: {30, 31, 32, 33, 34, 35, 36, 37, 38, 68, 73, 74, 78, 79, 80, 81, 86, 90, 94, 95, 96, 98, 99, 100, 103, 107, 108, 109, 111, 118, 119, 120}}
+    # # clusters = {
+    # #     0: {47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 71, 75, 82, 83, 88, 89, 92, 93,
+    # #         101, 102, 112, 113, 114, 115, 116, 117},
+    # #     1: {22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 66, 67, 68, 74, 76, 81, 90, 91, 94, 99,
+    # #         100, 103, 109, 111, 119, 121},
+    # #     2: {39, 40, 41, 42, 43, 44, 45, 46, 69, 70, 72, 73, 77, 78, 79, 80, 84, 85, 86, 87, 95, 96, 97, 98, 104, 105,
+    # #         106, 107, 108, 110, 118, 120}}
+    #
+    # clusters = {
+    #     0: {47, 48, 49, 50, 51, 52, 53, 54, 55, 71, 72, 77, 83, 84, 85, 88, 92, 93, 97, 101, 105, 106, 110, 112, 113,
+    #         114, 115, 116, 117},
+    #     1: {30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 68, 69, 70, 73, 74, 78, 79, 80, 86, 87,
+    #         95, 96, 98, 103, 104, 107, 108, 118, 120},
+    #     2: {22, 23, 24, 25, 26, 27, 28, 29, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 75, 76, 81, 82, 89, 90, 91,
+    #         94, 99, 100, 102, 109, 111, 119, 121}}
 
     for i in ['x', 'y', 'demand', 'ReadyTime', 'DueDate', 'ServiceTime']:
         df[i] = pd.to_numeric(df[i], errors='coerce')
@@ -878,7 +959,8 @@ if __name__ == "__main__":
     start_time = time.time()
 
     k = 1
-    gbs_list, gbs_center_location = generate_gbs(df, clusters, k)
+    gbs_list, gbs_center_location = generate_gbs(df, clusters, k, merge_single_gb=1, merge=0)
+
 
     # 将gb_centers增加到df中
     df, gb_centers_df_idx = add_gb_centers_in_dataframe(df, gbs_center_location)
@@ -888,18 +970,18 @@ if __name__ == "__main__":
     routes = []
     cost_cluster, part_cost_cluster = [], []
     remaining_Q = []
-    for i, cluster in list(gbs_list.items())[2:]:
+    for i, cluster in list(gbs_list.items())[1:2]:
         centers1 = np.array(gbs_center_location[i])
         gbs_distance_matrix = cdist(centers1, centers1, metric='euclidean')
         aca_gb = ACA_GB(func=cal_total_distance, n_dim=len(centers1),
-                      size_pop=10, max_iter=30,
+                      size_pop=5, max_iter=30,
                       distance_matrix=gbs_distance_matrix)
 
         gbs_order, _ = aca_gb.run()
         gbs_list1 = [gbs_list[i][j] for j in gbs_order]
         gbs_center_idx = [gb_centers_df_idx[i][j] for j in gbs_order]
 
-        size_ants, Iter = 10, 100
+        size_ants, Iter = 10, 50
         final_route, final_cost, final_part_cost, final_Q = gb_routing(df, gbs_list1, total_dist_matrix, gbs_center_idx, size_ants, Iter)
         routes.append(final_route)
         cost_cluster.append(final_cost)
@@ -923,14 +1005,14 @@ if __name__ == "__main__":
     plot_final_routes(df, routes)
 
 
-    # 合并所有子列表
-    all_elements = [item for sublist in routes for item in sublist]
-    # 找到重复元素
-    duplicates = set([item for item in all_elements if all_elements.count(item) > 1])
-    # 计算总元素数
-    total_elements = len(all_elements)
-    # 输出结果
-    print("总元素数:", total_elements)
-    print("重复元素:", duplicates)
-    print("重复元素数:", len(duplicates))
+    # # 合并所有子列表
+    # all_elements = [item for sublist in routes for item in sublist]
+    # # 找到重复元素
+    # duplicates = set([item for item in all_elements if all_elements.count(item) > 1])
+    # # 计算总元素数
+    # total_elements = len(all_elements)
+    # # 输出结果
+    # print("总元素数:", total_elements)
+    # print("重复元素:", duplicates)
+    # print("重复元素数:", len(duplicates))
 
