@@ -13,4 +13,4 @@ This repository contains the experiment code and instances for the GB-ACA (Granu
 
 1. **Step 1**: Split each cluster into multiple granular-balls using K-means clustering.
 2. **Step 2**: Consider each granular-ball as a point (represented by the center of the granular-ball in the experiment) and plan the paths of the granular-balls using the ACA algorithm to obtain a path among the granular-balls.
-3. **Step 3**: Following the order of the granular-ball paths obtained in Stage 2, use ACA to plan the internal paths within each granular-ball in turn.
+3. **Step 3**: Following the order of the granular-ball paths obtained in Step 2, use ACA to plan the internal paths within each granular-ball in turn.
