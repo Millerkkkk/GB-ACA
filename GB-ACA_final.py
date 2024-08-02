@@ -13,6 +13,7 @@ import matplotlib.pyplot as plt
 from scipy.spatial.distance import cdist
 
 
+
 # ******************************  Generate granular balls  *******************************
 class GenerateGBs:
     def __init__(self, data, k):
