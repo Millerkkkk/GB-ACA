@@ -1,4 +1,4 @@
-gis#  coding: UTF-8  #
+#  coding: UTF-8  #
 """
 @filename: ACA_final.py
 @author: Yingkai
@@ -685,6 +685,9 @@ def routing_time(df, dist_matrix, route, Q, load, departure_time, Q1, load1, dep
         Q -= energy
 
         # Determine if the point can reach the CS
+        # Charging strategy: At each node, calculate the power of this node to the nearest depot,
+        #                    if the current power cannot reach the nearest depot.
+        #                    then backtrack to the previous node and insert the CS after the node
         to_cs_dist = [dist_matrix[route[i]][j] for j in cs_list]
         min_distance_index = np.argmin(to_cs_dist)
         nearest_cs_index = cs_list[min_distance_index]
@@ -1050,19 +1053,19 @@ if __name__ == "__main__":
     #         101, 102, 103, 104, 105, 107, 108}}
 
 
-    # R101
-    df = pd.read_csv(
-        r'C:\Users\12149\OneDrive - Universitatea Babeş-Bolyai\Desktop\EVRP_Datasets\Txt\evrptw_instances_LijunFan\table 1\r101_21.txt',
-        sep=r'\s+')
-    # # # Currently the best performing clusters in ACA
-    # # # k = 0.4, merge = 0
-    clusters = {
-        0: {22, 24, 30, 31, 32, 40, 41, 51, 52, 53, 54, 55, 56, 70, 71, 72, 83, 84, 85, 86, 87, 90, 91, 92, 97, 98,
-            99, 100, 102, 109, 111},
-        1: {64,26, 27, 28, 29, 34, 35, 37, 38, 39, 57, 58, 59, 63, 65, 66, 67, 68, 69, 73, 80, 81, 82, 103, 104, 105, 106,
-            107, 108, 110, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121},
-        2: {48, 23, 25, 33, 36,  42, 43, 44, 45, 46, 47, 49, 50, 60, 61, 62, 74, 75, 76, 77, 78, 79, 88, 89, 93, 94, 95,
-            96, 101}}
+    # # R101
+    # df = pd.read_csv(
+    #     r'C:\Users\12149\OneDrive - Universitatea Babeş-Bolyai\Desktop\EVRP_Datasets\Txt\evrptw_instances_LijunFan\table 1\r101_21.txt',
+    #     sep=r'\s+')
+    # # # # Currently the best performing clusters in ACA
+    # # # # k = 0.4, merge = 0
+    # clusters = {
+    #     0: {22, 24, 30, 31, 32, 40, 41, 51, 52, 53, 54, 55, 56, 70, 71, 72, 83, 84, 85, 86, 87, 90, 91, 92, 97, 98,
+    #         99, 100, 102, 109, 111},
+    #     1: {64,26, 27, 28, 29, 34, 35, 37, 38, 39, 57, 58, 59, 63, 65, 66, 67, 68, 69, 73, 80, 81, 82, 103, 104, 105, 106,
+    #         107, 108, 110, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121},
+    #     2: {48, 23, 25, 33, 36,  42, 43, 44, 45, 46, 47, 49, 50, 60, 61, 62, 74, 75, 76, 77, 78, 79, 88, 89, 93, 94, 95,
+    #         96, 101}}
 
 
     # # RC101
@@ -1121,6 +1124,19 @@ if __name__ == "__main__":
     #     2: {39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 69, 70, 71, 72, 77, 83, 84, 85, 87, 88,
     #         92, 97, 101, 104, 105, 106, 110, 112, 113, 114, 115, 116}}
 
+    # RC202
+    df = pd.read_csv(
+        r"C:\Users\12149\OneDrive - Universitatea Babeş-Bolyai\Desktop\EVRP_Datasets\Txt\evrptw_instances_LijunFan\large_instances(100customer21cs_10)\rc202_21.txt",
+        sep=r'\s+')
+    # k=0.4, merge=1
+    clusters = {
+        0: {22, 23, 24, 25, 26, 27, 28, 29, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 75, 76, 82, 89, 91, 93, 102,
+            117, 121},
+        1: {30, 31, 32, 33, 34, 35, 36, 37, 38, 68, 73, 74, 78, 79, 80, 81, 86, 90, 94, 95, 96, 98, 99, 100, 103, 107,
+            108, 109, 111, 118, 119, 120},
+        2: {39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 69, 70, 71, 72, 77, 83, 84, 85, 87, 88,
+            92, 97, 101, 104, 105, 106, 110, 112, 113, 114, 115, 116}}
+
 
 
 
@@ -1145,7 +1161,7 @@ if __name__ == "__main__":
 
     # parameter setting
     k = 0.4
-    merge = 0
+    merge = 1
     gbs_list, gbs_center_location = generate_gbs(df, clusters, k, merge, merge_single_gb=1)
     print(gbs_list, gbs_center_location)
 
