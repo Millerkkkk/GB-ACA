@@ -739,6 +739,14 @@ def routing_time(df, dist_matrix, route, Q, load, departure_time, Q1, load1, dep
     return states
 
 
+def calculate_route_distance(path, distance_matrix):
+    total_distance = 0
+    num_points = len(path)
+    for i in range(num_points - 1):
+        total_distance += distance_matrix[path[i], path[i + 1]]
+    return total_distance
+
+
 class ACA_object:
     def __init__(self, nodes_list, distance_matrix,
                  size_ants=10, max_iter=20,
@@ -760,11 +768,8 @@ class ACA_object:
         self.ants_route = np.zeros((size_ants, self.nodes_sum)).astype(int)
 
         self.ants_cost = None
-        self.elite_ant_history, self.elite_ant_cost_history, self.elite_ant_info_history = [], [], []  # Recording the best of each generation
-        self.phero_elite_ant_cost_history = []
-        self.elite_ant_part_cost_history = []
-        self.elite_ant_dist_history = []
-        self.best_route, self.best_cost, self.best_info = None, None, []
+        self.elite_ant_history, self.elite_ant_cost_history = [], []  # Recording the best of each generation
+        self.best_route, self.best_cost = None, None
 
 
     def compute_transition_probabilities(self, current_node, unvisited):
@@ -829,12 +834,9 @@ class ACA_object:
         :param max_iter:
         :return:
         """
-        route_phero, travel_time_phero, charging_time_phero, service_time_phero = [], 0, 0, 0
         self.max_iter = max_iter or self.max_iter
         for i in range(self.max_iter):
-            # print('@@@@@@@@@@@@@@@@@@@@ Iteration', i, '@@@@@@@@@@@@@@@@@@@@@@@@@@')
             for j in range(self.ants_sum):
-                # print('------ ant', j, '----------')
                 if para_depot == 1 or para_depot == 3:
                     self.ants_route[j, 0] = np.random.randint(0, self.nodes_sum)  # Random selection of starting points
                 else:
@@ -861,12 +863,9 @@ class ACA_object:
                     self.ants_route[j, k + 1] = next_point
 
 
-            # Calculate cost
-            ants_cost, ants_part_cost = [], []
-            ants_cost_phero = []
-            Q_load_departure = []
+            # Calculate route_distance
+            ants_cost = []
             route_real_list = []
-            ants_dist = []
 
             depots = self.insert_depot(self.nodes_list, para_depot)
             for idx, ant_route in enumerate(self.ants_route):
@@ -886,78 +885,50 @@ class ACA_object:
                 else:
                     ant_route.append(next_gbs_center_idx)
 
-                # The result_states record the state after each node arrival
-                result_states = routing_time(df, dist_matrix, ant_route, Q, load, departure_time, Q, load, departure_time)
-
-                # This is broken into two parts by result_states,
-                # part 1: result_states[-1] is the state of the last node (the center of the next gb),
-                #         which is only useful for updating the pheromone with the cost.
-                # Info used only for updating pheromones ends with "_phero"
-                (_, route_phero, Q_phero, departure_time_phero, load_phero, _, _, _, _, _, travel_time_phero,
-                 charging_time_phero, service_time_phero, insert_cs_phero, dist_phero) = result_states[-1]
-                # To update the pheromones, compute the cost of the combined next gb-centered paths
-                cost_phero, part_cost_phero = total_cost(df, route_phero, travel_time_phero, charging_time_phero, service_time_phero)
-                ants_cost_phero.append(cost_phero)
+                print(ant_route)
+                route_dist = calculate_route_distance(ant_route, dist_matrix)
+                print('route_dist', route_dist)
 
                 # part 2: result_states[-2] is the state of the last node in the original gb
                 #          and the information in result_states[-2] is recorded as the final result
                 # Information used for real records ends with "_real"
                 if para_depot == 2 or para_depot == 3:
-                    (_, route_real, Q_real, departure_time_real, load_real, _, _, _, _, _, travel_time_real, charging_time_real,
-                     service_time_real, insert_cs_real, dist_real) = result_states[-1]
+                    route_real = ant_route
                 else:
                     # In this case, since the last node is the center point of the next gb, the correct path is result_states[-2]
-                    (_, route_real, Q_real, departure_time_real, load_real, _, _, _, _, _, travel_time_real,
-                     charging_time_real, service_time_real, insert_cs_real, dist_real) = result_states[-2]
+                    route_real = ant_route[:-1]
 
-                Q_load_departure.append([Q_real, load_real, departure_time_real])
+                print('route_real', route_real)
                 route_real_list.append(route_real)
-                cost, part_cost = total_cost(df, route_real, travel_time_real, charging_time_real, service_time_real)
-                ants_cost.append(cost)
-                ants_part_cost.append(part_cost)
-                ants_dist.append(dist_real)
+                ants_cost.append(route_dist)
+                print(route_real_list)
+                print(ants_cost)
 
 
             # Record the best history of "ant_phero" and update the pheromone
-            index_elite_ant_phero = np.array(ants_cost_phero).argmin()
-            elite_ant_phero, elite_ant_cost_phero = self.ants_route[index_elite_ant_phero].copy(), ants_cost_phero[index_elite_ant_phero].copy()
-            self.phero_elite_ant_cost_history.append(ants_cost_phero[index_elite_ant_phero])
-
-            # Record the best record of "ant_real" as a result
-            index_elite_ant = index_elite_ant_phero
+            index_elite_ant = np.array(ants_cost).argmin()
+            print('@@@@@@@@@', index_elite_ant, ants_cost)
+            print(self.ants_route)
             elite_ant, elite_ant_cost = self.ants_route[index_elite_ant].copy(), ants_cost[index_elite_ant].copy()
-            elite_ant_part_cost = ants_part_cost[index_elite_ant]
-            elite_ant_info = Q_load_departure[index_elite_ant]
-            complete_elite_ant = route_real_list[index_elite_ant]
-            elite_ant_dist = ants_dist[index_elite_ant]
-
-            # Updating pheromones
-            if route_phero == [] and travel_time_phero == 0 and charging_time_phero == 0 and service_time_phero == 0:
-                self.update_pheromone(elite_ant, elite_ant_cost, ants_cost)
-            else:
-                self.update_pheromone(elite_ant_phero, elite_ant_cost_phero, ants_cost_phero)
-
-            elite_ant_route = complete_elite_ant
-            self.elite_ant_history.append(elite_ant_route)
+            print('elite_ant', elite_ant, elite_ant_cost)
+            self.elite_ant_history.append(elite_ant)
             self.elite_ant_cost_history.append(elite_ant_cost)
-            self.elite_ant_part_cost_history.append(elite_ant_part_cost)
-            self.elite_ant_info_history.append(elite_ant_info)
-            self.elite_ant_dist_history.append(elite_ant_dist)
 
-        best_generation = np.array(self.phero_elite_ant_cost_history).argmin()
+            self.update_pheromone(elite_ant, elite_ant_cost, ants_cost)
+
+        print(self.elite_ant_cost_history)
+        print(self.elite_ant_history)
+        best_generation = np.array(self.elite_ant_cost_history).argmin()
         self.best_route = self.elite_ant_history[best_generation]
-        self.best_cost = (self.elite_ant_cost_history[best_generation], self.elite_ant_part_cost_history[best_generation])
-        self.best_info = self.elite_ant_info_history[best_generation]
-        best_dist = self.elite_ant_dist_history[best_generation]
-        return self.best_route, self.best_cost, self.best_info, best_dist
+        self.best_cost = self.elite_ant_cost_history[best_generation]
+        print('***********', self.best_route)
+        return self.best_route, self.best_cost
 
     fit = run
 
 
 def gb_routing(df, gbs_list, total_dist_matrix, gbs_center_idx, size_ants, max_iter, Q_max=40):
     final_route, final_cost_list, final_part_cost_list = [], [], []
-    final_Q = []
-    final_dist = []
 
     # Initialize Parameters
     Q = Q_max
@@ -991,17 +962,13 @@ def gb_routing(df, gbs_list, total_dist_matrix, gbs_center_idx, size_ants, max_i
             gb = final_route[-1:] + current_gb
             next_gb_center = gbs_center_idx[idx + 1]
 
-        # print('************ GB', idx, gb)
+        print('************ GB', idx, gb)
         aca_object = ACA_object(gb, total_dist_matrix, size_ants, max_iter)
 
-        gb_route, gb_cost, next_gb_info, route_dist = aca_object.run(df, total_dist_matrix, Q, load, departure_time, next_gb_center, para_depot)
-        gb_total_cost, gb_part_cost = gb_cost
-        Q, load, departure_time = next_gb_info
+        gb_route, gb_cost = aca_object.run(df, total_dist_matrix, Q, load, departure_time, next_gb_center, para_depot)
+        final_cost_list.append(gb_cost)
+        print('routing_route', gb_route)
 
-        final_cost_list.append(gb_total_cost)
-        final_part_cost_list.append(gb_part_cost)
-        final_Q.append(Q)
-        final_dist.append(route_dist)
 
         # Since the last node of the previous gb was inserted into gb,
         # the first node of gb now does not need to have a path written at the end of it
@@ -1011,6 +978,7 @@ def gb_routing(df, gbs_list, total_dist_matrix, gbs_center_idx, size_ants, max_i
             final_route.extend(gb_route[1:])
         else:
             final_route.extend(gb_route[1:])
+        print('final_route', final_route)
 
         idx += 1
         # # Plot the path updated after each GB, plot once for each GB
@@ -1018,8 +986,8 @@ def gb_routing(df, gbs_list, total_dist_matrix, gbs_center_idx, size_ants, max_i
         # plot_route(df, final_route, aca_object.elite_ant_cost_history)
 
     final_cost = sum(final_cost_list)
-    final_part_cost = [sum(column) for column in zip(*final_part_cost_list)]
-    return final_route, final_cost, final_part_cost, final_Q[-1], final_dist
+
+    return final_route, final_cost
 
 
 # Verify that the results are correct by calculating the total path distance directly from the distance matrix
@@ -1175,7 +1143,7 @@ if __name__ == "__main__":
     cost_cluster, part_cost_cluster = [], []
     remaining_Q = []
     dist1 = []
-    for i, cluster in list(gbs_list.items())[:]:
+    for i, cluster in list(gbs_list.items())[:1]:
 
         # Planning granular ball paths
         centers1 = np.array(gbs_center_location[i])
@@ -1196,13 +1164,11 @@ if __name__ == "__main__":
         print(gbs_order, gbs_list1)
 
         # Planning paths inside the granular ball
-        size_ants, Iter = 10, 50
-        final_route, final_cost, final_part_cost, final_Q, final_route_dist = gb_routing(df, gbs_list1, total_dist_matrix, gbs_center_idx, size_ants, Iter)
+        size_ants, Iter = 3, 5
+        final_route, final_cost = gb_routing(df, gbs_list1, total_dist_matrix, gbs_center_idx, size_ants, Iter)
         routes.append(final_route)
         cost_cluster.append(final_cost)
-        part_cost_cluster.append(final_part_cost)
-        remaining_Q.append(final_Q)
-        dist1.append(final_route_dist)
+
 
         plot_points(df, final_route)
 
