@@ -984,7 +984,7 @@ def routing_time(df, dist_matrix, route, Q, load, departure_time, Q1, load1, dep
 
 
 
-def insert_cs(df, dist_matrix, route, Q, load, departure_time, Q_max=40):
+def insert_cs(df, dist_matrix, route, load, Q=40, departure_time=0, Q_max=40):
     insert_cs = False
     total_charging_time = 0
     total_travel_time = 0
@@ -996,7 +996,9 @@ def insert_cs(df, dist_matrix, route, Q, load, departure_time, Q_max=40):
 
     states = []  # Track the status of each node
     i = 1
+    print('route', route)
     while i < len(route):
+        print(route[i-1], route[i])
         dis = dist_matrix[route[i-1], route[i]]
         energy, t_ijk, speed = calculate_one_node_energy_time(dis, departure_time, load)
         total_travel_time += t_ijk
@@ -1011,6 +1013,9 @@ def insert_cs(df, dist_matrix, route, Q, load, departure_time, Q_max=40):
         departure_time += t_ijk + service_time
         Q -= energy
 
+
+
+
         # Determine if the point can reach the CS
         # Charging strategy: At each node, calculate the power of this node to the nearest depot,
         #                    if the current power cannot reach the nearest depot.
@@ -1021,45 +1026,45 @@ def insert_cs(df, dist_matrix, route, Q, load, departure_time, Q_max=40):
         nearest_cs_distance = to_cs_dist[min_distance_index]
         to_cs_energy, to_cs_time, to_cs_speed = calculate_one_node_energy_time(nearest_cs_distance, departure_time, load)
         # print(Q - to_cs_energy)
-        if Q - to_cs_energy >= 0 or (Q - to_cs_energy < 0 and route[i] in depot_list):
-            states.append((i, route[:i+1], Q, departure_time, load, nearest_cs_index, nearest_cs_distance, to_cs_energy,
-                           to_cs_time, to_cs_speed, total_travel_time, total_charging_time, total_service_time, insert_cs, total_dist))
-        else:
-            insert_cs = True
-            # If the status list is empty and cannot be continued,
-            # it means that a depot should be inserted at the last point of the previous gb path.
-            if not states:
-                (new_route, Q, load, departure_time, to_cs_travel_time, to_cs_charging_time,
-                 to_cs_service_time, to_cs_dist1) = insert_cs_before_gb(df, dist_matrix, route, Q1, load1, departure_time1)
-                route = new_route
-                total_travel_time += to_cs_travel_time
-                total_service_time += to_cs_service_time
-                total_charging_time += to_cs_charging_time
-                total_dist += to_cs_dist1
-                states.append((i, route[:i + 1], Q, departure_time, load, None, None, None, None, None,
-                               total_travel_time, total_charging_time, total_service_time, insert_cs, total_dist))
-            else:
-                (prev_i, prev_route, prev_Q, prev_departure_time, prev_load, prev_nearest_cs_index, prev_nearest_cs_distance,
-                 prev_to_cs_energy, prev_to_cs_time, prev_to_cs_speed,
-                 prev_total_travel_time, prev_total_charging_time, prev_total_service_time, insert_cs, prev_dist) = states[-1]
-
-                total_travel_time = prev_total_travel_time + prev_to_cs_time
-                total_service_time = prev_total_service_time
-
-                q_ik = Q_max - (prev_Q - prev_to_cs_energy)
-                charging_time = calculate_charging_time(q_ik)
-                total_charging_time += charging_time
-
-                route.insert(prev_i + 1, prev_nearest_cs_index)
-                departure_time = prev_departure_time + prev_to_cs_time + charging_time
-                Q = Q_max
-                load = prev_load
-
-                total_dist = prev_dist + prev_nearest_cs_distance
-
-                states.append((i, route[:i+1], Q, departure_time, load, None, None, None, None, None,
-                               total_travel_time, total_charging_time, total_service_time, insert_cs, total_dist))
-                i = prev_i + 1
+        # if Q - to_cs_energy >= 0 or (Q - to_cs_energy < 0 and route[i] in depot_list):
+        #     states.append((i, route[:i+1], Q, departure_time, load, nearest_cs_index, nearest_cs_distance, to_cs_energy,
+        #                    to_cs_time, to_cs_speed, total_travel_time, total_charging_time, total_service_time, insert_cs, total_dist))
+        # else:
+        #     insert_cs = True
+        #     # If the status list is empty and cannot be continued,
+        #     # it means that a depot should be inserted at the last point of the previous gb path.
+        #     if not states:
+        #         (new_route, Q, load, departure_time, to_cs_travel_time, to_cs_charging_time,
+        #          to_cs_service_time, to_cs_dist1) = insert_cs_before_gb(df, dist_matrix, route, Q1, load1, departure_time1)
+        #         route = new_route
+        #         total_travel_time += to_cs_travel_time
+        #         total_service_time += to_cs_service_time
+        #         total_charging_time += to_cs_charging_time
+        #         total_dist += to_cs_dist1
+        #         states.append((i, route[:i + 1], Q, departure_time, load, None, None, None, None, None,
+        #                        total_travel_time, total_charging_time, total_service_time, insert_cs, total_dist))
+        #     else:
+        #         (prev_i, prev_route, prev_Q, prev_departure_time, prev_load, prev_nearest_cs_index, prev_nearest_cs_distance,
+        #          prev_to_cs_energy, prev_to_cs_time, prev_to_cs_speed,
+        #          prev_total_travel_time, prev_total_charging_time, prev_total_service_time, insert_cs, prev_dist) = states[-1]
+        #
+        #         total_travel_time = prev_total_travel_time + prev_to_cs_time
+        #         total_service_time = prev_total_service_time
+        #
+        #         q_ik = Q_max - (prev_Q - prev_to_cs_energy)
+        #         charging_time = calculate_charging_time(q_ik)
+        #         total_charging_time += charging_time
+        #
+        #         route.insert(prev_i + 1, prev_nearest_cs_index)
+        #         departure_time = prev_departure_time + prev_to_cs_time + charging_time
+        #         Q = Q_max
+        #         load = prev_load
+        #
+        #         total_dist = prev_dist + prev_nearest_cs_distance
+        #
+        #         states.append((i, route[:i+1], Q, departure_time, load, None, None, None, None, None,
+        #                        total_travel_time, total_charging_time, total_service_time, insert_cs, total_dist))
+        #         i = prev_i + 1
 
         i += 1
     return states
@@ -1246,13 +1251,15 @@ if __name__ == "__main__":
         final_route, final_cost = gb_routing(df, gbs_list1, total_dist_matrix, gbs_center_idx, size_ants, Iter)
         print('final_route', final_route)
 
-        W = 650
-        Q_max = 40
-        route_insert_cs = insert_cs(df, total_dist_matrix, final_route, Q_max, )
-
-
         routes.append(final_route)
         cost_cluster.append(final_cost)
+        # W = 650
+        # Q_max = 40
+        load = sum(df.loc[final_route, 'demand'])
+        route_insert_cs = insert_cs(df, total_dist_matrix, final_route, load)
+
+
+
 
 
         plot_points(df, final_route)
