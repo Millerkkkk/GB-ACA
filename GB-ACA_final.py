@@ -1328,7 +1328,178 @@ if __name__ == "__main__":
     #     2: {39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 69, 70, 71, 72, 77, 83, 84, 85, 87, 88,
     #         92, 97, 101, 104, 105, 106, 110, 112, 113, 114, 115, 116}}
 
+    # # C103
+    # df = pd.read_csv(r"C:\Users\12149\OneDrive - Universitatea Babeş-Bolyai\Desktop\EVRP_Datasets\Txt\evrptw_instances_LijunFan\large_instances(100customer21cs_10)\c103_21.txt",
+    #     sep=r'\s+')
+    # # # Currently the best performing clusters in ACA
+    # # # k = 0.6, merge = 1
+    # clusters = {
+    #     0: {22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 96, 106, 109, 110, 111, 112, 113,
+    #         114, 115, 116, 117, 118, 119, 120, 121},
+    #     1: {41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67,
+    #         68, 69, 70, 71, 72, 73,97},
+    #     2: {74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95,  98, 99, 100,
+    #         101, 102, 103, 104, 105, 107, 108}}
 
+    # # R103
+    # df = pd.read_csv(r"C:\Users\12149\OneDrive - Universitatea Babeş-Bolyai\Desktop\EVRP_Datasets\Txt\evrptw_instances_LijunFan\large_instances(100customer21cs_10)\r103_21.txt",
+    #     sep=r'\s+')
+    # # Currently the best performing clusters in ACA
+    # # k = 0.4, merge = 0
+    # clusters = {
+    #     0: {22, 24, 30, 31, 32, 40, 41, 48, 51, 52, 53, 54, 55, 56, 70, 71, 72, 83, 84, 85, 86, 87, 90, 91, 92, 97, 98, 99, 100, 102, 109, 111},
+    #     1: {26, 27, 28, 29, 34, 35, 37, 38, 39, 57, 58, 59, 63, 64, 65, 66, 67, 68, 69, 73, 80, 81, 82, 103, 104, 105, 106, 107, 108, 110, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121},
+    #     2: {23, 25, 33, 36, 42, 43, 44, 45, 46, 47, 49, 50, 60, 61, 62, 74, 75, 76, 77, 78, 79, 88, 89, 93, 94, 95, 96, 101}}
+
+    # # RC103
+    # df = pd.read_csv(
+    #     r"C:\Users\12149\OneDrive - Universitatea Babeş-Bolyai\Desktop\EVRP_Datasets\Txt\evrptw_instances_LijunFan\large_instances(100customer21cs_10)\rc103_21.txt",
+    #     sep=r'\s+')
+    # # Currently the best performing clusters in ACA
+    # # k = 0.4, merge = 1
+    # clusters = {
+    #     0: {22, 24, 26, 66, 29, 67, 25, 28, 27, 23, 91, 121, 76, 89, 82, 102, 117, 75, 93, 62, 63, 65, 64, 61, 60, 59,
+    #         58, 57, 56},
+    #     1: {34, 30, 31, 32, 36, 37, 38, 68, 35, 33, 99, 94, 100, 81, 109, 74, 119, 90, 111, 86, 103, 120, 73, 78, 107,
+    #         95, 108, 80, 118, 96, 79, 98},
+    #     2: {46, 44, 42, 69, 39, 40, 70, 45, 43, 41, 72, 97, 110, 84, 106, 105, 116, 77, 85, 104, 87, 101, 112, 113, 115,
+    #         114, 92, 88, 83, 71, 55, 52, 50, 48, 47, 49, 51, 53, 55, 54}}
+
+    # # C203
+    # df = pd.read_csv(
+    #     r"C:\Users\12149\OneDrive - Universitatea Babeş-Bolyai\Desktop\EVRP_Datasets\Txt\evrptw_instances_LijunFan\large_instances(100customer21cs_10)\c203_21.txt",
+    #     sep=r'\s+')
+    # # Currently the best performing clusters in ACA
+    # # k = 0.6, merge = 1
+    # clusters = {
+    #     0: {27, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54,
+    #         55, 56, 57, 58, 59, 60},
+    #     1: {22, 23, 24, 25, 26, 28, 91, 92, 94, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110,
+    #         111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121},
+    #     2: {61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87,
+    #         88, 89, 90, 93, 95}}
+
+    # # R203
+    # df = pd.read_csv(
+    #     r"C:\Users\12149\OneDrive - Universitatea Babeş-Bolyai\Desktop\EVRP_Datasets\Txt\evrptw_instances_LijunFan\large_instances(100customer21cs_10)\r203_21.txt",
+    #     sep=r'\s+')
+    # # Currently the best performing clusters in ACA
+    # # k = 0.4, merge = 0
+    # clusters = {
+    #     0: {22, 24, 30, 31, 32, 40, 41, 48, 51, 52, 53, 54, 55, 56, 70, 71, 72, 83, 84, 85, 86, 87, 90, 91, 92, 97, 98,
+    #         99, 100, 102, 109, 111},
+    #     1: {26, 27, 28, 29, 34, 35, 37, 38, 39, 57, 58, 59, 63, 64, 65, 66, 67, 68, 69, 73, 80, 81, 82, 103, 104, 105,
+    #         106, 107, 108, 110, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121},
+    #     2: {23, 25, 33, 36, 42, 43, 44, 45, 46, 47, 49, 50, 60, 61, 62, 74, 75, 76, 77, 78, 79, 88, 89, 93, 94, 95, 96,
+    #         101}}
+
+    # # RC203
+    # df = pd.read_csv(
+    #     r"C:\Users\12149\OneDrive - Universitatea Babeş-Bolyai\Desktop\EVRP_Datasets\Txt\evrptw_instances_LijunFan\large_instances(100customer21cs_10)\rc203_21.txt",
+    #     sep=r'\s+')
+    # # Currently the best performing clusters in ACA
+    # # k = 0.4, merge = 1
+    # clusters = {
+    #     0: {22, 24, 26, 66, 29, 67, 25, 28, 27, 23, 91, 121, 76, 89, 82, 102, 117, 75, 93, 62, 63, 65, 64, 61, 60, 59,
+    #         58, 57, 56},
+    #     1: {34, 30, 31, 32, 36, 37, 38, 68, 35, 33, 99, 94, 100, 81, 109, 74, 119, 90, 111, 86, 103, 120, 73, 78, 107,
+    #         95, 108, 80, 118, 96, 79, 98},
+    #     2: {46, 44, 42, 69, 39, 40, 70, 45, 43, 41, 72, 97, 110, 84, 106, 105, 116, 77, 85, 104, 87, 101, 112, 113, 115,
+    #         114, 92, 88, 83, 71, 55, 52, 50, 48, 47, 49, 51, 53, 55, 54}}
+
+    # # C104
+    # df = pd.read_csv(
+    #     r"C:\Users\12149\OneDrive - Universitatea Babeş-Bolyai\Desktop\EVRP_Datasets\Txt\evrptw_instances_LijunFan\large_instances(100customer21cs_10)\c104_21.txt",
+    #     sep=r'\s+')
+    # # # Currently the best performing clusters in ACA
+    # # # k = 0.6, merge = 1
+    # clusters = {
+    #     0: {22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 96, 106, 109, 110, 111, 112,
+    #         113,
+    #         114, 115, 116, 117, 118, 119, 120, 121},
+    #     1: {41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67,
+    #         68, 69, 70, 71, 72, 73},
+    #     2: {74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 97, 98, 99, 100,
+    #         101, 102, 103, 104, 105, 107, 108}}
+
+    # # R104
+    # df = pd.read_csv(r"C:\Users\12149\OneDrive - Universitatea Babeş-Bolyai\Desktop\EVRP_Datasets\Txt\evrptw_instances_LijunFan\large_instances(100customer21cs_10)\r104_21.txt",
+    #     sep=r'\s+')
+    # # # Currently the best performing clusters in ACA
+    # # # k = 0.4, merge = 0
+    # clusters = {
+    #     0: {22, 24, 30, 31, 32, 40, 41, 48, 51, 52, 53, 54, 55, 56, 70, 71, 72, 83, 84, 85, 86, 87, 90, 91, 92, 97, 98, 99, 100, 102, 109, 111},
+    #     1: {26, 27, 28, 29, 34, 35, 37, 38, 39, 57, 58, 59, 63, 64, 65, 66, 67, 68, 69, 73, 80, 81, 82, 103, 104, 105, 106, 107, 108, 110, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121},
+    #     2: {23, 25, 33, 36, 42, 43, 44, 45, 46, 47, 49, 50, 60, 61, 62, 74, 75, 76, 77, 78, 79, 88, 89, 93, 94, 95, 96, 101}}
+
+    # # RC104
+    # df = pd.read_csv(
+    #     r"C:\Users\12149\OneDrive - Universitatea Babeş-Bolyai\Desktop\EVRP_Datasets\Txt\evrptw_instances_LijunFan\large_instances(100customer21cs_10)\rc104_21.txt",
+    #     sep=r'\s+')
+    # # # Currently the best performing clusters in ACA
+    # # # k = 0.4, merge = 1
+    # clusters = {
+    #     0: {22, 24, 26, 66, 29, 67, 25, 28, 27, 23, 91, 121, 76, 89, 82, 102, 117, 75, 93, 62, 63, 65, 64, 61, 60, 59,
+    #         58, 57, 56},
+    #     1: {34, 30, 31, 32, 36, 37, 38, 68, 35, 33, 99, 94, 100, 81, 109, 74, 119, 90, 111, 86, 103, 120, 73, 78, 107,
+    #         95, 108, 80, 118, 96, 79, 98},
+    #     2: {46, 44, 42, 69, 39, 40, 70, 45, 43, 41, 72, 97, 110, 84, 106, 105, 116, 77, 85, 104, 87, 101, 112, 113, 115,
+    #         114, 92, 88, 83, 71, 55, 52, 50, 48, 47, 49, 51, 53, 55, 54}}
+
+    # # C204
+    # df = pd.read_csv(
+    #     r"C:\Users\12149\OneDrive - Universitatea Babeş-Bolyai\Desktop\EVRP_Datasets\Txt\evrptw_instances_LijunFan\large_instances(100customer21cs_10)\c204_21.txt",
+    #     sep=r'\s+')
+    # # # Currently the best performing clusters in ACA
+    # # # k = 0.4, merge = 1
+    # clusters = {
+    #     0: {27, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54,
+    #         55, 56, 57, 58, 59, 60},
+    #     1: {22, 23, 24, 25, 26, 28, 91, 92, 94, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110,
+    #         111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121},
+    #     2: {61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87,
+    #         88, 89, 90, 93, 95}}
+
+    # # R204
+    # df = pd.read_csv(r"C:\Users\12149\OneDrive - Universitatea Babeş-Bolyai\Desktop\EVRP_Datasets\Txt\evrptw_instances_LijunFan\large_instances(100customer21cs_10)\r204_21.txt",
+    #     sep=r'\s+')
+    # # # Currently the best performing clusters in ACA
+    # # # k = 0.4, merge = 0
+    # clusters = {
+    #     0: {22, 24, 30, 31, 32, 40, 41, 48, 51, 52, 53, 54, 55, 56, 70, 71, 72, 83, 84, 85, 86, 87, 90, 91, 92, 97, 98,
+    #         99, 100, 102, 109, 111},
+    #     1: {26, 27, 28, 29, 34, 35, 37, 38, 39, 57, 58, 59, 63, 64, 65, 66, 67, 68, 69, 73, 80, 81, 82, 103, 104, 105,
+    #         106, 107, 108, 110, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121},
+    #     2: {23, 25, 33, 36, 42, 43, 44, 45, 46, 47, 49, 50, 60, 61, 62, 74, 75, 76, 77, 78, 79, 88, 89, 93, 94, 95, 96,
+    #         101}}
+
+    # # RC204
+    # df = pd.read_csv(
+    #     r"C:\Users\12149\OneDrive - Universitatea Babeş-Bolyai\Desktop\EVRP_Datasets\Txt\evrptw_instances_LijunFan\large_instances(100customer21cs_10)\rc204_21.txt",
+    #     sep=r'\s+')
+    # # # Currently the best performing clusters in ACA
+    # # # k = 0.4, merge = 1
+    # clusters = {
+    #     0: {22, 24, 26, 66, 29, 67, 25, 28, 27, 23, 91, 121, 76, 89, 82, 102, 117, 75, 93, 62, 63, 65, 64, 61, 60, 59,
+    #         58, 57, 56},
+    #     1: {34, 30, 31, 32, 36, 37, 38, 68, 35, 33, 99, 94, 100, 81, 109, 74, 119, 90, 111, 86, 103, 120, 73, 78, 107,
+    #         95, 108, 80, 118, 96, 79, 98},
+    #     2: {46, 44, 42, 69, 39, 40, 70, 45, 43, 41, 72, 97, 110, 84, 106, 105, 116, 77, 85, 104, 87, 101, 112, 113, 115,
+    #         114, 92, 88, 83, 71, 55, 52, 50, 48, 47, 49, 51, 53, 55, 54}}
+
+    # rc105
+    df = pd.read_csv(
+        r"C:\Users\12149\OneDrive - Universitatea Babeş-Bolyai\Desktop\EVRP_Datasets\Txt\evrptw_instances_LijunFan\large_instances(100customer21cs_10)\rc105_21.txt",
+        sep=r'\s+')
+    # # Currently the best performing clusters in ACA
+    # # k = 0.4, merge = 1
+    clusters = {
+        0: {22, 24, 26, 66, 29, 67, 25, 28, 27, 23, 91, 121, 76, 89, 82, 102, 117, 75, 93, 62, 63, 65, 64, 61, 60, 59,
+            58, 57, 56},
+        1: {34, 30, 31, 32, 36, 37, 38, 68, 35, 33, 99, 94, 100, 81, 109, 74, 119, 90, 111, 86, 103, 120, 73, 78, 107,
+            95, 108, 80, 118, 96, 79, 98},
+        2: {46, 44, 42, 69, 39, 40, 70, 45, 43, 41, 72, 97, 110, 84, 106, 105, 116, 77, 85, 104, 87, 101, 112, 113, 115,
+            114, 92, 88, 83, 71, 55, 52, 50, 48, 47, 49, 51, 53, 55, 54}}
 
     # # RC202
     # df = pd.read_csv(
@@ -1430,6 +1601,7 @@ if __name__ == "__main__":
     print('part_cost =', part_cost_cluster_sums)
     print('routes_dist =', sum(routes_dist), routes_dist)
     print('       dist =',  sum(final_total_dist), final_total_dist)
+    print('total_distribution_time', sum(sum(time_set) for time_set in total_distribution_time), total_distribution_time)
     # print('remaining_Q =', sum(remaining_Q), remaining_Q)
     print('each_cluster_cost =', cost_cluster, part_cost_cluster)
     plot_final_routes(df, routes)
