@@ -808,7 +808,6 @@ def calculate_one_node_energy_time(distance, departure_time, u_ijk):
     total_energy = 0
     travel_time = 0
     remaining_distance = distance
-
     while remaining_distance > 0:
         # Converting time to 24-hour format
         current_time = departure_time % 24
@@ -821,6 +820,20 @@ def calculate_one_node_energy_time(distance, departure_time, u_ijk):
             travel_speed = 30
         else:
             travel_speed = 60
+
+        # if 0 <= current_time < 2:  # 07:00 - 09:00
+        #     travel_speed = 30
+        # elif 2 <= current_time < 5:  # 09:00 - 12:00
+        #     travel_speed = 55
+        # elif 5 <= current_time < 7:  # 12:00 - 14:00
+        #     travel_speed = 50
+        # elif 7 <= current_time < 10:  # 14:00 - 17:00
+        #     travel_speed = 55
+        # elif 10 <= current_time < 12:  # 17:00 - 19:00
+        #     travel_speed = 30
+        # else:
+        #     # Set speed for all other times as default (e.g., off-peak hours)
+        #     travel_speed = 60
 
         # Calculates the travel time in the current time period
         t_ijk_R = min(period_end - current_time, remaining_distance / travel_speed)
@@ -885,7 +898,6 @@ def calculate_remaining_route_energy(df, route, current_index, departure_time, l
         service_time_minutes = df.loc[route[i + 1], 'ServiceTime']
         service_time = service_time_minutes / 60
         departure_time += service_time
-
     return total_remaining_energy
 
 
@@ -1100,6 +1112,7 @@ def final_route_plan(df, dist_matrix, route, load, cs_distance_range=3, Q=40, de
     total_travel_time = 0
     total_service_time = 0
     total_dist = 0
+    total_energy_consumption = 0
     required_charge = 0
 
     cs_list = df[df['Type'] == 'f'].index.tolist()
@@ -1110,6 +1123,8 @@ def final_route_plan(df, dist_matrix, route, load, cs_distance_range=3, Q=40, de
     states = []  # Track the status of each node
     i = 1
     while i < len(route):
+        charge_time, charge_time1 = 0, 0
+
         if route[i] in route_nearest_cs:
             # print('route[i]', route[i], route_nearest_cs)
             near_cs = route_nearest_cs[route[i]]
@@ -1129,6 +1144,23 @@ def final_route_plan(df, dist_matrix, route, load, cs_distance_range=3, Q=40, de
 
             # print('######################################', route, near_cs)
 
+        print('**** test *****', route[i - 1], route[i])
+        dis = dist_matrix[route[i-1], route[i]]
+        energy, t_ijk, speed = calculate_one_node_energy_time(dis, departure_time, load)
+        total_travel_time += t_ijk
+        total_dist += dis
+        total_energy_consumption += energy
+
+        service_time_minutes = df.loc[route[i]]['ServiceTime']
+        service_time = service_time_minutes / 60
+        total_service_time += service_time
+
+        load -= df.loc[route[i], 'demand']
+        departure_time += t_ijk + service_time
+        Q -= energy
+        if load < 0:
+            print("************************************************************************************Error: Condition not met!")
+
         if route[i] in cs_list:
             # calculate the energy from route[i] to CS
             remaining_departure_time = departure_time
@@ -1141,33 +1173,13 @@ def final_route_plan(df, dist_matrix, route, load, cs_distance_range=3, Q=40, de
             remaining_Q -= to_cs_energy
             # calculate remaining route energy
             required_power = calculate_remaining_route_energy(df, route, i, remaining_departure_time, remaining_load, dist_matrix)
+            print('需要的电量required_power', required_power, remaining_Q)
             if remaining_Q < required_power:
-                required_charge = min(40, required_power) - remaining_Q+0.3
+                required_charge = min(40, required_power + 0.2) - remaining_Q
             else:
                 required_charge = 0
                 del route[i]
-
-            # print('required_power, remaining_Q', required_power, remaining_Q, required_charge)
-
-
-        # print('**** test *****', route[i - 1], route[i])
-        dis = dist_matrix[route[i-1], route[i]]
-        energy, t_ijk, speed = calculate_one_node_energy_time(dis, departure_time, load)
-        total_travel_time += t_ijk
-        total_dist += dis
-
-        service_time_minutes = df.loc[route[i]]['ServiceTime']
-        service_time = service_time_minutes / 60
-        total_service_time += service_time
-
-        load -= df.loc[route[i], 'demand']
-        departure_time += t_ijk + service_time
-        Q -= energy
-        # print(total_service_time, service_time)
-        # print(departure_time, load, Q, energy)
-        # print(dis, total_dist)
-        if load < 0:
-            print("************************************************************************************Error: Condition not met!")
+            print('需要的电量required_power22', required_charge)
 
         if route[i] in cs_list and required_charge > 0:
             charge_time = calculate_charging_time(required_charge)
@@ -1177,14 +1189,16 @@ def final_route_plan(df, dist_matrix, route, load, cs_distance_range=3, Q=40, de
             # print('charging', charge_time, departure_time, Q)
 
         states.append((i, route, Q, departure_time, load, total_travel_time, total_charging_time, total_service_time,
-                       total_dist))
+                       total_energy_consumption, total_dist))
 
         # 电量不足，需要向前回溯插入充电站
         if Q < 0:
+            print('电量不足电量不足电量不足电量不足电量不足电量不足电量不足电量不足电量不足电量不足')
             # print(states)
             while states:
                 prev_state = states.pop()
-                prev_i, prev_route, prev_Q, prev_departure_time, prev_load, prev_travel_time, prev_charging_time, prev_service_time, prev_dist = prev_state
+                (prev_i, prev_route, prev_Q, prev_departure_time, prev_load, prev_travel_time, prev_charging_time,
+                 prev_service_time, prev_energy_consumption, prev_dist) = prev_state
 
                 to_cs_dist = [dist_matrix[prev_route[prev_i]][j] for j in cs_list]
                 min_distance_index = np.argmin(to_cs_dist)
@@ -1200,15 +1214,18 @@ def final_route_plan(df, dist_matrix, route, load, cs_distance_range=3, Q=40, de
                     prev_route.insert(prev_i+1, nearest_cs)
                     # print('插入后的路径', prev_route)
                     arrive_cs_time = prev_departure_time + to_cs_time
+
                     remaining_route_power = calculate_remaining_route_energy(df, prev_route, prev_i+1, arrive_cs_time,
                                                                       prev_load, dist_matrix)
-
-                    required_charge_power = min(40, remaining_route_power) - prev_Q
+                    print('计算剩余路径所需的电量', prev_route)
+                    required_charge_power = min(40, remaining_route_power+0.2) - prev_Q
                     charge_time1 = calculate_charging_time(required_charge_power)
-                    if prev_Q + required_charge_power + 0.5 <= 40:
-                        Q = prev_Q + required_charge_power + 0.5
-                    else:
-                        Q = prev_Q + required_charge_power
+                    Q = prev_Q + required_charge_power
+                    # if prev_Q + required_charge_power + 0.2 <= 40:
+                    #     Q = prev_Q + required_charge_power + 0.2
+                    # else:
+                    #     Q = prev_Q + required_charge_power
+                    print('prev', prev_route[prev_i], prev_Q, required_charge_power)
                     load = prev_load
                     route = prev_route
                     departure_time = arrive_cs_time + charge_time1
@@ -1216,14 +1233,19 @@ def final_route_plan(df, dist_matrix, route, load, cs_distance_range=3, Q=40, de
                     total_travel_time = prev_travel_time + to_cs_time
                     total_service_time = prev_service_time
                     total_dist = prev_dist + nearest_cs_distance
-
+                    total_energy_consumption = prev_energy_consumption + to_cs_energy
 
                     # print(departure_time, prev_departure_time, to_cs_time, charge_time1, total_dist)
                     i = prev_i +1
                     break  # 退出回溯
-        i += 1
+        print('QQQQQQQQQQQQQQ', Q, energy)
+        print('t_ijk, service_time, charge_time, charge_time1', t_ijk, '+', service_time, '+', charge_time, '+', charge_time1)
+        print('departure_time', departure_time)
+        print('total_time,energy,serve', total_travel_time, total_service_time, total_charging_time, total_energy_consumption)
 
-    return route, total_dist, total_travel_time, total_charging_time, total_service_time
+        i += 1
+    print('total_travel_time, total_charging_time, total_service_time',total_travel_time, total_charging_time, total_service_time)
+    return route, total_dist, total_travel_time, total_charging_time, total_service_time, total_energy_consumption
 
 
 # Verify that the results are correct by calculating the total path distance directly from the distance matrix
@@ -1314,19 +1336,19 @@ if __name__ == "__main__":
     #     2: {23, 25, 33, 36, 42, 43, 44, 45, 46, 47, 49, 50, 60, 61, 62, 64,74, 75, 76, 77, 78, 79, 88, 89, 93, 94, 95, 96, 101}}
 
 
-    # # RC201
-    # df = pd.read_csv(
-    #     r"C:\Users\12149\OneDrive - Universitatea Babeş-Bolyai\Desktop\EVRP_Datasets\Txt\evrptw_instances_LijunFan\large_instances(100customer21cs_10)\rc201_21.txt",
-    #     sep=r'\s+')
-    # # Currently the best performing clusters in ACA
-    # # k=0.4, merge=1
-    # clusters = {
-    #     0: {22, 23, 24, 25, 26, 27, 28, 29, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 75, 76, 82, 89, 91, 93, 102,
-    #         117, 121},
-    #     1: {30, 31, 32, 33, 34, 35, 36, 37, 38, 68, 73, 74, 78, 79, 80, 81, 86, 90, 94, 95, 96, 98, 99, 100, 103, 107,
-    #         108, 109, 111, 118, 119, 120},
-    #     2: {39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 69, 70, 71, 72, 77, 83, 84, 85, 87, 88,
-    #         92, 97, 101, 104, 105, 106, 110, 112, 113, 114, 115, 116}}
+    # RC201
+    df = pd.read_csv(
+        r"C:\Users\12149\OneDrive - Universitatea Babeş-Bolyai\Desktop\EVRP_Datasets\Txt\evrptw_instances_LijunFan\large_instances(100customer21cs_10)\rc201_21.txt",
+        sep=r'\s+')
+    # Currently the best performing clusters in ACA
+    # k=0.4, merge=1
+    clusters = {
+        0: {22, 23, 24, 25, 26, 27, 28, 29, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 75, 76, 82, 89, 91, 93, 102,
+            117, 121},
+        1: {30, 31, 32, 33, 34, 35, 36, 37, 38, 68, 73, 74, 78, 79, 80, 81, 86, 90, 94, 95, 96, 98, 99, 100, 103, 107,
+            108, 109, 111, 118, 119, 120},
+        2: {39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 69, 70, 71, 72, 77, 83, 84, 85, 87, 88,
+            92, 97, 101, 104, 105, 106, 110, 112, 113, 114, 115, 116}}
 
     # # C103
     # df = pd.read_csv(r"C:\Users\12149\OneDrive - Universitatea Babeş-Bolyai\Desktop\EVRP_Datasets\Txt\evrptw_instances_LijunFan\large_instances(100customer21cs_10)\c103_21.txt",
@@ -1487,19 +1509,56 @@ if __name__ == "__main__":
     #     2: {46, 44, 42, 69, 39, 40, 70, 45, 43, 41, 72, 97, 110, 84, 106, 105, 116, 77, 85, 104, 87, 101, 112, 113, 115,
     #         114, 92, 88, 83, 71, 55, 52, 50, 48, 47, 49, 51, 53, 55, 54}}
 
-    # rc105
-    df = pd.read_csv(
-        r"C:\Users\12149\OneDrive - Universitatea Babeş-Bolyai\Desktop\EVRP_Datasets\Txt\evrptw_instances_LijunFan\large_instances(100customer21cs_10)\rc105_21.txt",
-        sep=r'\s+')
-    # # Currently the best performing clusters in ACA
-    # # k = 0.4, merge = 1
-    clusters = {
-        0: {22, 24, 26, 66, 29, 67, 25, 28, 27, 23, 91, 121, 76, 89, 82, 102, 117, 75, 93, 62, 63, 65, 64, 61, 60, 59,
-            58, 57, 56},
-        1: {34, 30, 31, 32, 36, 37, 38, 68, 35, 33, 99, 94, 100, 81, 109, 74, 119, 90, 111, 86, 103, 120, 73, 78, 107,
-            95, 108, 80, 118, 96, 79, 98},
-        2: {46, 44, 42, 69, 39, 40, 70, 45, 43, 41, 72, 97, 110, 84, 106, 105, 116, 77, 85, 104, 87, 101, 112, 113, 115,
-            114, 92, 88, 83, 71, 55, 52, 50, 48, 47, 49, 51, 53, 55, 54}}
+    # # rc105
+    # df = pd.read_csv(
+    #     r"C:\Users\12149\OneDrive - Universitatea Babeş-Bolyai\Desktop\EVRP_Datasets\Txt\evrptw_instances_LijunFan\large_instances(100customer21cs_10)\rc105_21.txt",
+    #     sep=r'\s+')
+    # # # Currently the best performing clusters in ACA
+    # # # k = 0.4, merge = 1
+    # clusters = {
+    #     0: {22, 24, 26, 66, 29, 67, 25, 28, 27, 23, 91, 121, 76, 89, 82, 102, 117, 75, 93, 62, 63, 65, 64, 61, 60, 59,
+    #         58, 57, 56},
+    #     1: {34, 30, 31, 32, 36, 37, 38, 68, 35, 33, 99, 94, 100, 81, 109, 74, 119, 90, 111, 86, 103, 120, 73, 78, 107,
+    #         95, 108, 80, 118, 96, 79, 98},
+    #     2: {46, 44, 42, 69, 39, 40, 70, 45, 43, 41, 72, 97, 110, 84, 106, 105, 116, 77, 85, 104, 87, 101, 112, 113, 115,
+    #         114, 92, 88, 83, 71, 55, 52, 50, 48, 47, 49, 51, 53, 55, 54}}
+
+    # # C102
+    # df = pd.read_csv(r"C:\Users\12149\OneDrive - Universitatea Babeş-Bolyai\Desktop\EVRP_Datasets\Txt\evrptw_instances_LijunFan\large_instances(100customer21cs_10)\c102_21.txt",
+    #     sep=r'\s+')
+    # # # Currently the best performing clusters in ACA
+    # # # k = 0.6, merge = 1
+    # clusters = {
+    #     0: {22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 96, 106, 109, 110, 111, 112, 113,
+    #         114, 115, 116, 117, 118, 119, 120, 121},
+    #     1: {41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67,
+    #         68, 69, 70, 71, 72, 73},
+    #     2: {74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 97, 98, 99, 100,
+    #         101, 102, 103, 104, 105, 107, 108}}
+
+    # # C202
+    # df = pd.read_csv(
+    #     r"C:\Users\12149\OneDrive - Universitatea Babeş-Bolyai\Desktop\EVRP_Datasets\Txt\evrptw_instances_LijunFan\large_instances(100customer21cs_10)\c202_21.txt",
+    #     sep=r'\s+')
+    # # # Currently the best performing clusters in ACA
+    # # # k = 0.4, merge = 1
+    # clusters = {
+    #     0: {27, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54,
+    #         55, 56, 57, 58, 59, 60},
+    #     1: {22, 23, 24, 25, 26, 28, 91, 92, 94, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110,
+    #         111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121},
+    #     2: {61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87,
+    #         88, 89, 90, 93, 95}}
+
+    # # R102
+    # df = pd.read_csv(r"C:\Users\12149\OneDrive - Universitatea Babeş-Bolyai\Desktop\EVRP_Datasets\Txt\evrptw_instances_LijunFan\large_instances(100customer21cs_10)\r102_21.txt",
+    #     sep=r'\s+')
+    # # # Currently the best performing clusters in ACA
+    # # # k = 0.4, merge = 0
+    # clusters = {
+    #     0: {22, 24, 30, 31, 32, 40, 41, 48, 51, 52, 53, 54, 55, 56, 70, 71, 72, 83, 84, 85, 86, 87, 90, 91, 92, 97, 98, 99, 100, 102, 109, 111},
+    #     1: {26, 27, 28, 29, 34, 35, 37, 38, 39, 57, 58, 59, 63, 64, 65, 66, 67, 68, 69, 73, 80, 81, 82, 103, 104, 105, 106, 107, 108, 110, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121},
+    #     2: {23, 25, 33, 36, 42, 43, 44, 45, 46, 47, 49, 50, 60, 61, 62, 74, 75, 76, 77, 78, 79, 88, 89, 93, 94, 95, 96, 101}}
 
     # # RC202
     # df = pd.read_csv(
@@ -1551,7 +1610,8 @@ if __name__ == "__main__":
     remaining_Q = []
     final_total_dist = []
     total_distribution_time = []
-    for i, cluster in list(gbs_list.items())[:]:
+    total_routes_energy_consumption = []
+    for i, cluster in list(gbs_list.items())[2:3]:
 
         # Planning granular ball paths
         centers1 = np.array(gbs_center_location[i])
@@ -1572,14 +1632,14 @@ if __name__ == "__main__":
         print(gbs_order, gbs_list1)
 
         # Planning paths inside the granular ball
-        size_ants, Iter = 10, 80
+        size_ants, Iter = 10, 100
         route, final_dist = gb_routing(df, gbs_list1, total_dist_matrix, gbs_center_idx, size_ants, Iter)
         # print('route', route)
 
         # W = 650
         # Q_max = 40
         load = sum(df.loc[route, 'demand'])
-        final_route, total_dist, travel_time, charging_time, service_time = final_route_plan(df, total_dist_matrix, route, load, 4)
+        final_route, total_dist, travel_time, charging_time, service_time, energy_consumption = final_route_plan(df, total_dist_matrix, route, load, 4)
         route_total_cost, route_part_cost = total_cost(df, final_route, travel_time, charging_time, service_time)
 
         routes.append(final_route)
@@ -1587,6 +1647,7 @@ if __name__ == "__main__":
         part_cost_cluster.append(route_part_cost)
         final_total_dist.append(total_dist)
         total_distribution_time.append([travel_time, charging_time, service_time])
+        total_routes_energy_consumption.append(energy_consumption)
 
         plot_points(df, final_route)
 
@@ -1602,6 +1663,7 @@ if __name__ == "__main__":
     print('routes_dist =', sum(routes_dist), routes_dist)
     print('       dist =',  sum(final_total_dist), final_total_dist)
     print('total_distribution_time', sum(sum(time_set) for time_set in total_distribution_time), total_distribution_time)
+    print('energy_consumption', sum(total_routes_energy_consumption), total_routes_energy_consumption)
     # print('remaining_Q =', sum(remaining_Q), remaining_Q)
     print('each_cluster_cost =', cost_cluster, part_cost_cluster)
     plot_final_routes(df, routes)
