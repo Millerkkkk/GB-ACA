@@ -854,9 +854,6 @@ def calculate_one_node_energy_time(distance, departure_time, u_ijk):
     return total_energy, travel_time, travel_speed
 
 
-
-
-
 def calculate_remaining_route_energy(df, route, current_index, departure_time, load, dist_matrix):
     total_remaining_energy = 0
     # Iterate over the remaining route to calculate energy consumption for each segment
@@ -1061,7 +1058,6 @@ def find_nearest_charging_stations(df, route, total_dist_matrix, distance_thresh
     return insert_dict
 
 
-
 def find_best_insertion(route, i, near_cs, dist_matrix):
     # 插入near_cs到route[i]之前的路径
     route_before = route[:i] + [near_cs] + route[i:]
@@ -1136,8 +1132,6 @@ def final_route_plan(df, dist_matrix, route, load, cs_distance_range=3, Q=40, de
             Q = Q + required_charge
             total_charging_time += charge_time
             departure_time += charge_time
-
-
 
         if load < 0:
             print("************************************************************************************Error: Condition not met!")
