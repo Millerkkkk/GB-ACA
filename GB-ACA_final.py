@@ -854,39 +854,14 @@ def calculate_one_node_energy_time(distance, departure_time, u_ijk):
     return total_energy, travel_time, travel_speed
 
 
-# def remaining_route_energy(df, route, prev_i, departure_time1, load, dist_matrix):
-#     need_charging_energy = 0
-#     j = prev_i + 2
-#     while j < len(route):
-#         dis1 = dist_matrix[route[j - 1], route[j]]
-#         energy1, t_ijk1, speed1 = calculate_one_node_energy_time(dis1, departure_time1, load)
-#
-#         service_time_minutes1 = df.loc[route[j]]['ServiceTime']
-#         service_time1 = service_time_minutes1 / 60
-#         # print('load', load, demands_list[self.route[j]])
-#         departure_time1 += t_ijk1 + service_time1
-#         load -= df.loc[route[j]]['demand']
-#         need_charging_energy += energy1
-#
-#         j += 1
-#     return need_charging_energy
+
 
 
 def calculate_remaining_route_energy(df, route, current_index, departure_time, load, dist_matrix):
-    """
-    计算从当前位置开始，剩余路径的总能量消耗
-    :param df: 包含节点信息的DataFrame
-    :param route: 当前车辆的完整路径
-    :param current_position: 当前车辆位置（即充电站位置）
-    :param departure_time: 当前时间，用于计算出发后的时间
-    :param load: 当前车辆负载
-    :param dist_matrix: 距离矩阵，用于查找两点之间的距离
-    :return: 剩余路径所需的总能量
-    """
     total_remaining_energy = 0
-    # 遍历剩余路径，计算每段距离的能量消耗
+    # Iterate over the remaining route to calculate energy consumption for each segment
     for i in range(current_index, len(route) - 1):
-        # 获取当前节点和下一个节点之间的距离
+        # Get the distance between the current node and the next node
         dis = dist_matrix[route[i], route[i + 1]]
 
         energy, t_ijk, speed = calculate_one_node_energy_time(dis, departure_time, load)
@@ -894,11 +869,12 @@ def calculate_remaining_route_energy(df, route, current_index, departure_time, l
         load -= df.loc[route[i + 1], 'demand']
 
         departure_time += t_ijk
-        # 考虑节点的服务时间
+        # Consider the service time at each node
         service_time_minutes = df.loc[route[i + 1], 'ServiceTime']
         service_time = service_time_minutes / 60
         departure_time += service_time
     return total_remaining_energy
+
 
 
 def total_cost(df, route, travel_time, charging_time, service_time,
@@ -1025,70 +1001,65 @@ def routing_time(df, dist_matrix, route, Q, load, departure_time, Q1, load1, dep
     return states
 
 
-# def find_nearest_charging_stations(df, node_list, total_dist_matrix, distance_threshold=3):
-#     # 筛选出充电站节点
-#     charging_stations = df[df['Type'] == 'f'].index.tolist()
-#     # 初始化返回的结果字典
-#     result_dict = {}
-#
-#     for node in node_list:
-#         # 获取该节点的整数索引
-#         node_idx = df.index.get_loc(node)
-#         # 获取该节点到所有充电站的距离
-#         distances_to_charging_stations = total_dist_matrix[node_idx, [df.index.get_loc(cs) for cs in charging_stations]]
-#
-#         # 找到距离小于等于阈值的充电站
-#         nearby_stations = [(charging_stations[i], dist) for i, dist in enumerate(distances_to_charging_stations) if
-#                            dist <= distance_threshold]
-#
-#         if nearby_stations:
-#             # 找到最近的充电站
-#             nearest_station, nearest_station_dist = min(nearby_stations, key=lambda x: x[1])
-#             # 记录该节点与最近的充电站
-#             result_dict[node] = nearest_station
-#
-#     return result_dict
-
-
-def find_nearest_charging_stations(df, node_list, total_dist_matrix, distance_threshold=3):
-    # 筛选出充电站节点
+def find_nearest_charging_stations(df, route, total_dist_matrix, distance_threshold=3):
+    # Filter out charging station nodes
     charging_stations = df[df['Type'] == 'f'].index.tolist()
     depot_list = df[df['Type'] == 'd'].index.tolist()
-    # 初始化返回的初步结果字典，记录每个节点和对应的最近充电站
+    # Initialize the preliminary result dictionary to record each node and its nearest charging station
     initial_result_dict = {}
 
-    for node in node_list:
+    for node in route:
         if node in depot_list:
             continue
-        # 获取该节点的整数索引
+        # Get the integer index of the node
         node_idx = df.index.get_loc(node)
-        # 获取该节点到所有充电站的距离
+        # Get the distances from this node to all charging stations
         distances_to_charging_stations = total_dist_matrix[node_idx, [df.index.get_loc(cs) for cs in charging_stations]]
 
-        # 找到距离小于等于阈值的充电站
+        # Find charging stations within the distance threshold
         nearby_stations = [(charging_stations[i], dist) for i, dist in enumerate(distances_to_charging_stations) if
                            dist <= distance_threshold]
 
         if nearby_stations:
-            # 找到最近的充电站
+            # Find the nearest charging station
             nearest_station, nearest_station_dist = min(nearby_stations, key=lambda x: x[1])
-            # 记录该节点与最近的充电站
+            # Record the node and its nearest charging station
             initial_result_dict[node] = (nearest_station, nearest_station_dist)
 
-    # 初始化最终结果字典，避免相同充电站节点的重复
+    # Initialize the final result dictionary to avoid duplicate charging station nodes
     final_result_dict = {}
 
-    # 遍历初步结果字典，确保对于每个充电站，只保留最近的节点
+    # Iterate over the preliminary result dictionary to ensure only the closest node to each charging station is kept
     for node, (station, distance) in initial_result_dict.items():
-        # 如果该充电站还没有记录，或者当前节点距离更近，则更新字典
+        # If the charging station is not yet recorded, or the current node is closer, update the dictionary
         if station not in final_result_dict or distance < final_result_dict[station][1]:
             final_result_dict[station] = (node, distance)
 
-    # 返回最终结果，只返回每个充电站对应的最近节点
-    # 格式为：{节点: 最近的充电站}
+    # Return the final result, returning only the nearest node for each charging station
+    # Format: {node: nearest charging station}
     result_dict = {node: station for station, (node, distance) in final_result_dict.items()}
 
-    return result_dict
+    insert_dict = {}  # Store insertion positions
+
+    for i in range(1, len(route) - 1):
+        if route[i] in result_dict:
+            # Find the nearest charging station corresponding to the current node
+            near_cs = result_dict[route[i]]
+
+            # Compare whether to insert the charging station before or after the node
+            temp_route_before = [route[i - 1], near_cs, route[i], route[i + 1]]
+            temp_route_after = [route[i - 1], route[i], near_cs, route[i + 1]]
+
+            distance_before = calculate_route_distance(temp_route_before, total_dist_matrix)
+            distance_after = calculate_route_distance(temp_route_after, total_dist_matrix)
+
+            # Determine whether to insert the charging station before or after the node
+            if distance_before < distance_after:
+                insert_dict[route[i - 1]] = near_cs  # Insert before the current node
+            else:
+                insert_dict[route[i]] = near_cs  # Insert after the current node
+    return insert_dict
+
 
 
 def find_best_insertion(route, i, near_cs, dist_matrix):
@@ -1108,6 +1079,7 @@ def find_best_insertion(route, i, near_cs, dist_matrix):
 
 
 def final_route_plan(df, dist_matrix, route, load, cs_distance_range=3, Q=40, departure_time=0, Q_max=40):
+    insert_cs = False
     total_charging_time = 0
     total_travel_time = 0
     total_service_time = 0
@@ -1125,25 +1097,6 @@ def final_route_plan(df, dist_matrix, route, load, cs_distance_range=3, Q=40, de
     while i < len(route):
         charge_time, charge_time1 = 0, 0
 
-        if route[i] in route_nearest_cs:
-            # print('route[i]', route[i], route_nearest_cs)
-            near_cs = route_nearest_cs[route[i]]
-            temp_route_before = [route[i - 1], near_cs, route[i], route[i + 1]]
-            distance_before = calculate_route_distance(temp_route_before, dist_matrix)
-            temp_route_after = [route[i - 1], route[i], near_cs, route[i + 1]]
-            distance_after = calculate_route_distance(temp_route_after, dist_matrix)
-            if distance_before < distance_after:
-                route.insert(i, near_cs)
-            else:
-                route.insert(i+1, near_cs)
-
-            # 根据值删除键值对
-            keys_to_remove = [key for key, value in route_nearest_cs.items() if value == near_cs]
-            for key in keys_to_remove:
-                del route_nearest_cs[key]
-
-            # print('######################################', route, near_cs)
-
         print('**** test *****', route[i - 1], route[i])
         dis = dist_matrix[route[i-1], route[i]]
         energy, t_ijk, speed = calculate_one_node_energy_time(dis, departure_time, load)
@@ -1158,42 +1111,42 @@ def final_route_plan(df, dist_matrix, route, load, cs_distance_range=3, Q=40, de
         load -= df.loc[route[i], 'demand']
         departure_time += t_ijk + service_time
         Q -= energy
-        if load < 0:
-            print("************************************************************************************Error: Condition not met!")
 
-        if route[i] in cs_list:
-            # calculate the energy from route[i] to CS
-            remaining_departure_time = departure_time
-            remaining_load = load
-            remaining_Q = Q
-            remaining_dis = dist_matrix[route[i-1], route[i]]
-            to_cs_energy, to_cs_t_ijk, to_cs_speed = calculate_one_node_energy_time(remaining_dis, remaining_departure_time, remaining_load)
-            remaining_departure_time += to_cs_t_ijk + 0
-            remaining_load -= 0
-            remaining_Q -= to_cs_energy
+        # Determine if the nearest CS needs to be inserted
+        if route[i] in route_nearest_cs:
             # calculate remaining route energy
-            required_power = calculate_remaining_route_energy(df, route, i, remaining_departure_time, remaining_load, dist_matrix)
-            print('需要的电量required_power', required_power, remaining_Q)
-            if remaining_Q < required_power:
-                required_charge = min(40, required_power + 0.2) - remaining_Q
+            judge_remaining_departure_time = departure_time
+            judge_remaining_load = load
+            judge_remaining_Q = Q
+            judge_required_power = calculate_remaining_route_energy(df, route, i, judge_remaining_departure_time,
+                                                                    judge_remaining_load, dist_matrix)
+            if judge_remaining_Q < judge_required_power:
+                insert_cs = True
+                route.insert(i + 1, route_nearest_cs[route[i]])
+                del route_nearest_cs[route[i]]
+                print(i, route)
             else:
-                required_charge = 0
-                del route[i]
-            print('需要的电量required_power22', required_charge)
+                insert_cs = False
 
-        if route[i] in cs_list and required_charge > 0:
+        # Charging at the nearest CS node
+        if route[i] in cs_list:
+            required_power = calculate_remaining_route_energy(df, route, i, departure_time, load, dist_matrix)
+            required_charge = min(40, required_power+0.01) - Q
             charge_time = calculate_charging_time(required_charge)
             Q = Q + required_charge
             total_charging_time += charge_time
             departure_time += charge_time
-            # print('charging', charge_time, departure_time, Q)
+
+
+
+        if load < 0:
+            print("************************************************************************************Error: Condition not met!")
 
         states.append((i, route, Q, departure_time, load, total_travel_time, total_charging_time, total_service_time,
                        total_energy_consumption, total_dist))
 
         # 电量不足，需要向前回溯插入充电站
         if Q < 0:
-            print('电量不足电量不足电量不足电量不足电量不足电量不足电量不足电量不足电量不足电量不足')
             # print(states)
             while states:
                 prev_state = states.pop()
@@ -1209,22 +1162,15 @@ def final_route_plan(df, dist_matrix, route, load, cs_distance_range=3, Q=40, de
                                                                                        prev_load)
                 # print(prev_state)
                 if prev_Q - to_cs_energy >= 0:
-                    # print('插入000000000000000000', prev_i+1, prev_route[prev_i])
-                    # print(nearest_cs_distance, to_cs_energy, to_cs_time)
                     prev_route.insert(prev_i+1, nearest_cs)
-                    # print('插入后的路径', prev_route)
                     arrive_cs_time = prev_departure_time + to_cs_time
 
                     remaining_route_power = calculate_remaining_route_energy(df, prev_route, prev_i+1, arrive_cs_time,
                                                                       prev_load, dist_matrix)
-                    print('计算剩余路径所需的电量', prev_route)
                     required_charge_power = min(40, remaining_route_power+0.2) - prev_Q
                     charge_time1 = calculate_charging_time(required_charge_power)
                     Q = prev_Q + required_charge_power
-                    # if prev_Q + required_charge_power + 0.2 <= 40:
-                    #     Q = prev_Q + required_charge_power + 0.2
-                    # else:
-                    #     Q = prev_Q + required_charge_power
+
                     print('prev', prev_route[prev_i], prev_Q, required_charge_power)
                     load = prev_load
                     route = prev_route
@@ -1237,7 +1183,7 @@ def final_route_plan(df, dist_matrix, route, load, cs_distance_range=3, Q=40, de
 
                     # print(departure_time, prev_departure_time, to_cs_time, charge_time1, total_dist)
                     i = prev_i +1
-                    break  # 退出回溯
+                    break
         print('QQQQQQQQQQQQQQ', Q, energy)
         print('t_ijk, service_time, charge_time, charge_time1', t_ijk, '+', service_time, '+', charge_time, '+', charge_time1)
         print('departure_time', departure_time)
@@ -1611,7 +1557,7 @@ if __name__ == "__main__":
     final_total_dist = []
     total_distribution_time = []
     total_routes_energy_consumption = []
-    for i, cluster in list(gbs_list.items())[2:3]:
+    for i, cluster in list(gbs_list.items())[:]:
 
         # Planning granular ball paths
         centers1 = np.array(gbs_center_location[i])
